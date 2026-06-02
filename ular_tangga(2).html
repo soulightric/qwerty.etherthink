@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎲 Ular Tangga</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1923;
+    --board-light: #f0ead2;
+    --board-dark: #ddc8a0;
+    --gold: #f7c948;
+    --gold2: #e8a812;
+    --green: #27ae60;
+    --red: #e74c3c;
+    --blue: #3498db;
+    --purple: #9b59b6;
+    --panel: #1a2535;
+    --panel2: #223044;
+    --text: #e8f0fe;
+    --subtext: #8ca0be;
+    --accent: #64b5f6;
+    --snake-body: #2ecc71;
+    --snake-dark: #1a8a4a;
+    --ladder-col: #e67e22;
+    --border-radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Nunito', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(52,152,219,0.07) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(155,89,182,0.07) 0%, transparent 50%);
+  }
+
+  h1, h2, .title-font { font-family: 'Fredoka One', cursive; }
+
+  /* ─── SCREENS ─────────────────────────────────── */
+  .screen { display: none; }
+  .screen.active { display: flex; }
+
+  /* ─── MENU SCREEN ─────────────────────────────── */
+  #screen-menu {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 24px;
+    padding: 24px;
+  }
+
+  .menu-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    background: linear-gradient(135deg, #f7c948, #ff6b6b, #a29bfe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+    line-height: 1.1;
+    letter-spacing: 1px;
+  }
+
+  .menu-subtitle {
+    color: var(--subtext);
+    font-size: 1rem;
+    text-align: center;
+    max-width: 380px;
+  }
+
+  .level-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .level-card {
+    background: var(--panel);
+    border: 2px solid transparent;
+    border-radius: var(--border-radius);
+    padding: 18px 14px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .level-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+
+  .level-card:hover { transform: translateY(-3px); }
+  .level-card.selected { border-color: var(--gold); }
+
+  .level-card .emoji { font-size: 2rem; display: block; margin-bottom: 6px; }
+  .level-card .lname {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    display: block;
+  }
+  .level-card .ldesc {
+    font-size: 0.75rem;
+    color: var(--subtext);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, #f7c948, #e8a812);
+    color: #1a1a1a;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.3rem;
+    letter-spacing: 1px;
+    border: none;
+    padding: 16px 48px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 6px 24px rgba(247,201,72,0.35);
+    max-width: 280px;
+    width: 100%;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(247,201,72,0.5);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* ─── GAME SCREEN ─────────────────────────────── */
+  #screen-game {
+    flex-direction: row;
+    gap: 0;
+    min-height: 100vh;
+    align-items: stretch;
+  }
+
+  .board-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    min-width: 0;
+  }
+
+  .board-wrapper {
+    position: relative;
+    width: min(96vmin, 600px);
+    height: min(96vmin, 600px);
+  }
+
+  #board-canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    display: block;
+  }
+
+  /* ─── PANEL ───────────────────────────────────── */
+  .game-panel {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 16px;
+    gap: 16px;
+    border-left: 1px solid rgba(255,255,255,0.07);
+    overflow-y: auto;
+  }
+
+  .panel-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.4rem;
+    color: var(--gold);
+    text-align: center;
+  }
+
+  .level-badge {
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 50px;
+    display: inline-block;
+    margin: 0 auto;
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+  }
+
+  /* DICE */
+  .dice-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .dice-face {
+    width: 80px;
+    height: 80px;
+    background: #fff9ee;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.8);
+    display: grid;
+    grid-template-areas:
+      "a . c"
+      "e g f"
+      "d . b";
+    padding: 12px;
+    gap: 0;
+    position: relative;
+    transition: transform 0.1s;
+  }
+
+  .dice-face.rolling {
+    animation: diceRoll 0.08s infinite;
+  }
+
+  @keyframes diceRoll {
+    0%  { transform: rotate(-8deg) scale(1.05); }
+    50% { transform: rotate(8deg) scale(0.95); }
+    100%{ transform: rotate(-8deg) scale(1.05); }
+  }
+
+  .dot {
+    width: 14px;
+    height: 14px;
+    background: #1a1a2e;
+    border-radius: 50%;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .dot.hidden { visibility: hidden; }
+
+  .dice-value-label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    color: var(--accent);
+  }
+
+  .btn-roll {
+    background: linear-gradient(135deg, #27ae60, #1e8449);
+    color: white;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    letter-spacing: 0.5px;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 16px rgba(39,174,96,0.4);
+    width: 100%;
+  }
+  .btn-roll:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(39,174,96,0.5);
+  }
+  .btn-roll:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-roll.ai-turn {
+    background: linear-gradient(135deg, #636e72, #2d3436);
+    box-shadow: none;
+  }
+
+  /* PLAYERS */
+  .players-section { display: flex; flex-direction: column; gap: 8px; }
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: var(--subtext);
+    text-transform: uppercase;
+  }
+
+  .player-card {
+    background: var(--panel2);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .player-card.active {
+    border-color: var(--gold);
+    background: rgba(247,201,72,0.08);
+  }
+  .player-card.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 2px 0 0 2px;
+  }
+
+  .player-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: #fff;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+
+  .player-info { flex: 1; min-width: 0; }
+  .player-name {
+    font-weight: 800;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .player-pos {
+    font-size: 0.72rem;
+    color: var(--subtext);
+    margin-top: 2px;
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  .giliran-tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--gold);
+    background: rgba(247,201,72,0.15);
+    padding: 2px 7px;
+    border-radius: 50px;
+    flex-shrink: 0;
+  }
+
+  /* MESSAGE BOX */
+  .message-box {
+    background: var(--panel2);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--text);
+    min-height: 48px;
+    border-left: 3px solid var(--accent);
+    transition: all 0.3s;
+  }
+  .message-box.snake { border-left-color: var(--red); }
+  .message-box.ladder { border-left-color: var(--green); }
+  .message-box.win { border-left-color: var(--gold); }
+
+  /* BFS HINT */
+  .hint-box {
+    background: rgba(100,181,246,0.08);
+    border: 1px solid rgba(100,181,246,0.2);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.78rem;
+  }
+  .hint-box .hint-title {
+    font-weight: 800;
+    color: var(--accent);
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .hint-value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: #a8ff78;
+  }
+
+  /* NAV BUTTONS */
+  .nav-buttons { display: flex; gap: 8px; }
+  .btn-nav {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--subtext);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 8px 4px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .btn-nav:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+  }
+
+  /* ─── RESULT SCREEN ───────────────────────────── */
+  #screen-result {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 20px;
+    padding: 24px;
+  }
+
+  .trophy-icon {
+    font-size: 5rem;
+    animation: trophi 1s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 20px rgba(247,201,72,0.6));
+  }
+  @keyframes trophi {
+    from { transform: scale(1) rotate(-5deg); }
+    to   { transform: scale(1.1) rotate(5deg); }
+  }
+
+  .result-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    background: linear-gradient(135deg, #f7c948, #ffeaa7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-align: center;
+  }
+
+  .result-card {
+    background: var(--panel);
+    border: 1px solid rgba(247,201,72,0.2);
+    border-radius: 20px;
+    padding: 28px 36px;
+    text-align: center;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+
+  .result-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.9rem;
+  }
+  .result-stat:last-child { border-bottom: none; }
+  .result-stat .label { color: var(--subtext); }
+  .result-stat .value { font-weight: 800; color: var(--text); }
+
+  .result-btns { display: flex; gap: 12px; max-width: 360px; width: 100%; }
+  .btn-secondary {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    padding: 14px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { background: var(--panel2); }
+
+  /* ─── FIREWORKS ───────────────────────────────── */
+  #fireworks-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* ─── RESPONSIVE ──────────────────────────────── */
+  @media (max-width: 700px) {
+    #screen-game { flex-direction: column; }
+    .game-panel {
+      width: 100%;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 12px;
+    }
+    .panel-title { display: none; }
+    .dice-area { flex-direction: row; align-items: center; gap: 12px; }
+    .btn-roll { width: auto; padding: 12px 24px; }
+    .players-section { flex-direction: row; flex-wrap: wrap; flex: 1; }
+    .player-card { min-width: 180px; flex: 1; }
+    .hint-box, .message-box { flex: 1; min-width: 200px; }
+    .nav-buttons { width: 100%; }
+    .board-area { padding: 8px; }
+  }
+
+  /* ─── PARTICLES ─────────────────── */
+  .confetti-particle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 99;
+    animation: confettiFall linear forwards;
+  }
+  @keyframes confettiFall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- MENU -->
+<div id="screen-menu" class="screen active">
+  <div class="menu-title">🎲 Ular Tangga</div>
+  <p class="menu-subtitle">
+    Pilih level kesulitan, lalu tantang AI dalam permainan klasik Indonesia!
+  </p>
+  <div class="level-grid" id="levelGrid"></div>
+  <input
+    type="text"
+    id="playerName"
+    placeholder="Masukkan nama pemain"
+    maxlength="20"
+    style="
+      padding:12px;
+      border-radius:10px;
+      border:none;
+      width:100%;
+      max-width:300px;
+      text-align:center;
+      font-size:16px;
+    "
+  >
+  <button class="btn-primary" id="btnStart">🎮 Mulai Bermain</button>
+</div>
+
+<!-- GAME -->
+<div id="screen-game" class="screen">
+  <div class="board-area">
+    <div class="board-wrapper">
+      <canvas id="board-canvas"></canvas>
+    </div>
+  </div>
+
+  <div class="game-panel">
+    <div class="panel-title">🎲 Ular Tangga</div>
+    <div id="levelBadge" class="level-badge">MUDAH</div>
+
+    <div class="divider"></div>
+
+    <div class="dice-area">
+      <div class="dice-face" id="diceFace">
+        <div class="dot" id="d-a"></div>
+        <div class="dot hidden"></div>
+        <div class="dot" id="d-c"></div>
+        <div class="dot" id="d-e"></div>
+        <div class="dot" id="d-g"></div>
+        <div class="dot" id="d-f"></div>
+        <div class="dot" id="d-d"></div>
+        <div class="dot hidden"></div>
+        <div class="dot" id="d-b"></div>
+      </div>
+      <div id="diceLabel" class="dice-value-label">Tekan Lempar!</div>
+      <button class="btn-roll" id="btnRoll">🎲 LEMPAR DADU</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="players-section">
+      <div class="section-label">Pemain</div>
+      <div id="playersContainer"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div id="messageBox" class="message-box">Selamat bermain! 🎉</div>
+
+    <div id="hintBox" class="hint-box" style="display:none">
+      <div class="hint-title">🔍 BFS Hint</div>
+      <span id="hintValue" class="hint-value">-</span>
+      <span style="font-size:0.75rem;color:var(--subtext);"> lemparan minimum ke kotak 100</span>
+    </div>
+
+    <div class="nav-buttons">
+      <button class="btn-nav" id="btnMenu">🏠 Menu</button>
+      <button class="btn-nav" id="btnRestart">🔄 Ulang</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="screen-result" class="screen">
+  <div class="trophy-icon">🏆</div>
+  <div class="result-title" id="resultTitle">Selamat!</div>
+  <div class="result-card" id="resultCard"></div>
+  <div class="result-btns">
+    <button class="btn-secondary" id="btnResultMenu">🏠 Menu</button>
+    <button class="btn-secondary" id="btnResultReplay">🔄 Main Lagi</button>
+  </div>
+</div>
+
+<canvas id="fireworks-canvas"></canvas>
+
+<script>
+// ══════════════════════════════════════════════
+//  DATA & CONFIG
+// ══════════════════════════════════════════════
+const LEVELS = {
+  1: {
+    name: "MUDAH", emoji: "🌱", color: "#27ae60",
+    snakes:  {17:7, 54:34, 62:19, 64:60, 87:24, 93:73, 95:75, 99:78},
+    ladders: {4:14, 9:31, 20:38, 28:84, 40:59, 51:67, 63:81, 71:91},
+    aiCount: 1, desc: "Seimbang, cocok untuk pemula!"
+  },
+  2: {
+    name: "SEDANG", emoji: "🔥", color: "#f39c12",
+    snakes:  {17:7, 32:10, 54:34, 62:19, 64:60, 87:24, 93:73, 95:75, 99:78, 45:5},
+    ladders: {4:14, 9:31, 20:38, 28:84, 40:59, 51:67, 63:81},
+    aiCount: 1, desc: "Lebih banyak ular, hati-hati!"
+  },
+  3: {
+    name: "SUSAH", emoji: "💀", color: "#e74c3c",
+    snakes:  {12:2, 25:4, 32:10, 48:6, 54:34, 62:19, 64:60, 72:51, 87:24, 93:73, 95:75, 99:78},
+    ladders: {4:14, 9:31, 28:84, 40:59, 63:81},
+    aiCount: 2, desc: "Banyak ular, sedikit tangga!"
+  },
+  4: {
+    name: "LEGENDARIS", emoji: "⚡", color: "#9b59b6",
+    snakes:  null, ladders: null,
+    aiCount: 2, desc: "Papan diacak tiap game!"
+  }
+};
+
+const PLAYER_COLORS = ["#f7c948","#3498db","#e74c3c","#9b59b6"];
+const PLAYER_NAMES  = ["Pemain","AI-1","AI-2","AI-3"];
+
+// ══════════════════════════════════════════════
+//  FISHER-YATES
+// ══════════════════════════════════════════════
+function shuffle(arr) {
+  for (let i = arr.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function generateLegendaryBoard() {
+  const cells = Array.from({length:96}, (_,i)=>i+3);
+  shuffle(cells);
+  const snakeHeads = cells.slice(0, 12);
+  const remaining = cells.filter(c => !snakeHeads.includes(c));
+  shuffle(remaining);
+  const ladderBottoms = remaining.slice(0, 8);
+  const snakes = {}, ladders = {};
+  const usedTails = new Set();
+  snakeHeads.forEach(head => {
+    const possible = Array.from({length:head-2},(_,i)=>i+2)
+      .filter(c => !snakeHeads.includes(c) && !usedTails.has(c));
+    if (possible.length) {
+      const tail = possible[Math.floor(Math.random()*possible.length)];
+      snakes[head] = tail; usedTails.add(tail);
+    }
+  });
+  const usedTops = new Set();
+  ladderBottoms.forEach(bot => {
+    const possible = Array.from({length:99-bot-4},(_,i)=>bot+5+i)
+      .filter(c => !ladders[c] && !snakes[c] && !usedTops.has(c) && c < 100);
+    if (possible.length) {
+      const top = possible[Math.floor(Math.random()*possible.length)];
+      ladders[bot] = top; usedTops.add(top);
+    }
+  });
+  return {snakes, ladders};
+}
+
+// ══════════════════════════════════════════════
+//  BFS
+// ══════════════════════════════════════════════
+function bfsShortestPath(start, snakes, ladders) {
+  if (start === 100) return 0;
+  const queue = [[start, 0]];
+  const visited = new Set([start]);
+  while (queue.length) {
+    const [pos, dist] = queue.shift();
+    for (let dice = 1; dice <= 6; dice++) {
+      let next = pos + dice;
+      if (next > 100) continue;
+      const actual = snakes[next] || ladders[next] || next;
+      if (actual === 100) return dist + 1;
+      if (!visited.has(actual)) {
+        visited.add(actual);
+        queue.push([actual, dist + 1]);
+      }
+    }
+  }
+  return -1;
+}
+
+// ══════════════════════════════════════════════
+//  GAME STATE
+// ══════════════════════════════════════════════
+let G = {};
+
+function initGame(level) {
+  const lvl = LEVELS[level];
+  let snakes, ladders;
+  if (lvl.snakes === null) {
+    ({snakes, ladders} = generateLegendaryBoard());
+  } else {
+    snakes  = {...lvl.snakes};
+    ladders = {...lvl.ladders};
+  }
+
+  const players = [{name:playerName, color:PLAYER_COLORS[0], pos:0, rolls:0, isAi:false}];
+  for (let i = 0; i < lvl.aiCount; i++) {
+    players.push({name:`AI-${i+1}`, color:PLAYER_COLORS[i+2], pos:0, rolls:0, isAi:true});
+  }
+
+  G = {
+    level, snakes, ladders, players,
+    current: 0,
+    diceVal: 0,
+    rolling: false,
+    busy: false,
+    winner: null,
+    startTime: Date.now(),
+    // step animation
+    animQueue: [],   // cells to visit one by one
+    animIdx: 0,
+    animating: false,
+  };
+}
+
+// ══════════════════════════════════════════════
+//  CANVAS BOARD
+// ══════════════════════════════════════════════
+const canvas = document.getElementById('board-canvas');
+const ctx    = canvas.getContext('2d');
+const SIZE   = 600;
+const CELL   = SIZE / 10;
+
+canvas.width  = SIZE;
+canvas.height = SIZE;
+
+function cellToXY(cell) {
+  const idx = cell - 1;
+  const row = Math.floor(idx / 10);
+  const col = idx % 10;
+  const dispRow = 9 - row;
+  const dispCol = (row % 2 === 0) ? col : (9 - col);
+  return {
+    x: dispCol * CELL + CELL / 2,
+    y: dispRow * CELL + CELL / 2
+  };
+}
+
+// ── DRAW BOARD ──────────────────────────────
+function drawBoard() {
+  ctx.clearRect(0, 0, SIZE, SIZE);
+
+  // Cells
+  for (let row = 0; row < 10; row++) {
+    for (let col = 0; col < 10; col++) {
+      const x = col * CELL, y = row * CELL;
+      const isLight = (row + col) % 2 === 0;
+      ctx.fillStyle = isLight ? '#f0ead2' : '#ddc8a0';
+      ctx.fillRect(x, y, CELL, CELL);
+
+      // Cell number
+      const dispRow = 9 - row;
+      const num = (dispRow % 2 === 0)
+        ? dispRow * 10 + col + 1
+        : dispRow * 10 + (9 - col) + 1;
+
+      ctx.fillStyle = 'rgba(80,60,30,0.5)';
+      ctx.font = `bold ${Math.floor(CELL*0.18)}px Nunito,sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(num, x + 4, y + CELL*0.22);
+    }
+  }
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(139,119,80,0.4)';
+  ctx.lineWidth = 0.7;
+  for (let i = 0; i <= 10; i++) {
+    ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,SIZE); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(SIZE,i*CELL); ctx.stroke();
+  }
+
+  // Kotak 100 — glow
+  const {x:fx, y:fy} = cellToXY(100);
+  const grd = ctx.createRadialGradient(fx,fy,0,fx,fy,CELL*0.48);
+  grd.addColorStop(0,'rgba(255,200,50,0.55)');
+  grd.addColorStop(1,'rgba(255,200,50,0)');
+  ctx.fillStyle = grd;
+  ctx.fillRect(fx-CELL/2, fy-CELL/2, CELL, CELL);
+  ctx.font = `${Math.floor(CELL*0.5)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText('🏆', fx, fy + CELL*0.18);
+
+  if (!G.snakes) return;
+
+  drawSnakes();
+  drawLadders();
+  drawPlayers();
+}
+
+// ── DRAW SNAKE (SVG path style on canvas) ────
+function drawSnakes() {
+  Object.entries(G.snakes).forEach(([head, tail]) => {
+    const h = cellToXY(+head);
+    const t = cellToXY(+tail);
+    drawSnakeSVG(h.x, h.y, t.x, t.y);
+  });
+}
+
+function drawSnakeSVG(hx, hy, tx, ty) {
+  const dx = tx - hx, dy = ty - hy;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  const waves = Math.max(3, Math.floor(len / 45));
+
+  // Control points for wavy path
+  const pts = [];
+  for (let i = 0; i <= waves * 2; i++) {
+    const t = i / (waves * 2);
+    const bx = hx + dx * t;
+    const by = hy + dy * t;
+    // perpendicular
+    const px = -dy / len;
+    const py =  dx / len;
+    const amp = 16 * Math.sin(i * Math.PI / 2 > 0 ? 1 : -1) * (i % 2 === 0 ? 1 : -1);
+    pts.push({x: bx + px * amp, y: by + py * amp});
+  }
+  pts[0]  = {x: hx, y: hy};
+  pts[pts.length-1] = {x: tx, y: ty};
+
+  // Body shadow
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x + 2, pts[0].y + 2);
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i-1];
+    const mid  = {x:(prev.x+pts[i].x)/2+2, y:(prev.y+pts[i].y)/2+2};
+    ctx.quadraticCurveTo(prev.x+2, prev.y+2, mid.x, mid.y);
+  }
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+  ctx.lineWidth = 11;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Body gradient
+  const grd = ctx.createLinearGradient(hx, hy, tx, ty);
+  grd.addColorStop(0, '#c0392b');
+  grd.addColorStop(0.3, '#e74c3c');
+  grd.addColorStop(0.6, '#c0392b');
+  grd.addColorStop(1, '#922b21');
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i-1];
+    const mid  = {x:(prev.x+pts[i].x)/2, y:(prev.y+pts[i].y)/2};
+    ctx.quadraticCurveTo(prev.x, prev.y, mid.x, mid.y);
+  }
+  ctx.strokeStyle = grd;
+  ctx.lineWidth = 9;
+  ctx.stroke();
+
+  // Scale pattern overlay
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i-1];
+    const mid  = {x:(prev.x+pts[i].x)/2, y:(prev.y+pts[i].y)/2};
+    ctx.quadraticCurveTo(prev.x, prev.y, mid.x, mid.y);
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([4, 6]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // HEAD
+  ctx.save();
+  const angle = Math.atan2(pts[1].y - pts[0].y, pts[1].x - pts[0].x);
+  ctx.translate(hx, hy);
+  ctx.rotate(angle);
+
+  // Head shape
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 13, 9, 0, 0, Math.PI*2);
+  ctx.fillStyle = '#922b21';
+  ctx.fill();
+  ctx.strokeStyle = '#641e16';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Eyes
+  [-4, 4].forEach(ey => {
+    ctx.beginPath();
+    ctx.arc(4, ey, 2.5, 0, Math.PI*2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(4.5, ey, 1.2, 0, Math.PI*2);
+    ctx.fillStyle = '#111';
+    ctx.fill();
+  });
+
+  // Tongue
+  ctx.beginPath();
+  ctx.moveTo(12, 0);
+  ctx.lineTo(17, -3);
+  ctx.moveTo(12, 0);
+  ctx.lineTo(17, 3);
+  ctx.strokeStyle = '#e74c3c';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.restore();
+
+  // Tail tip
+  ctx.beginPath();
+  ctx.arc(tx, ty, 4, 0, Math.PI*2);
+  ctx.fillStyle = '#7b241c';
+  ctx.fill();
+}
+
+// ── DRAW LADDERS ─────────────────────────────
+function drawLadders() {
+  Object.entries(G.ladders).forEach(([bot, top]) => {
+    const b = cellToXY(+bot);
+    const t = cellToXY(+top);
+    drawLadder(b.x, b.y, t.x, t.y);
+  });
+}
+
+function drawLadder(bx, by, tx, ty) {
+  const dx = tx - bx, dy = ty - by;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  const px = -dy / len * 7;
+  const py =  dx / len * 7;
+
+  // Shadow
+  ctx.beginPath();
+  ctx.moveTo(bx-px+2, by-py+2);
+  ctx.lineTo(tx-px+2, ty-py+2);
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(bx+px+2, by+py+2);
+  ctx.lineTo(tx+px+2, ty+py+2);
+  ctx.stroke();
+
+  // Rails
+  const railGrd = ctx.createLinearGradient(bx, by, tx, ty);
+  railGrd.addColorStop(0, '#d35400');
+  railGrd.addColorStop(0.5, '#e67e22');
+  railGrd.addColorStop(1, '#d35400');
+
+  [1,-1].forEach(side => {
+    ctx.beginPath();
+    ctx.moveTo(bx + px*side, by + py*side);
+    ctx.lineTo(tx + px*side, ty + py*side);
+    ctx.strokeStyle = railGrd;
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    // Highlight
+    ctx.beginPath();
+    ctx.moveTo(bx + px*side, by + py*side);
+    ctx.lineTo(tx + px*side, ty + py*side);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // Rungs
+  const steps = Math.max(4, Math.floor(len / 28));
+  for (let i = 0; i <= steps; i++) {
+    const t2 = i / steps;
+    const rx = bx + dx * t2;
+    const ry = by + dy * t2;
+    ctx.beginPath();
+    ctx.moveTo(rx - px, ry - py);
+    ctx.lineTo(rx + px, ry + py);
+    ctx.strokeStyle = '#e67e22';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(rx - px, ry - py);
+    ctx.lineTo(rx + px, ry + py);
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // Bottom arrow badge
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.beginPath();
+  ctx.arc(0, 0, 9, 0, Math.PI*2);
+  ctx.fillStyle = '#e67e22';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('▲', 0, 0);
+  ctx.restore();
+}
+
+// ── DRAW PLAYERS ──────────────────────────────
+function drawPlayers() {
+  if (!G.players) return;
+  const offsets = [[-14,0],[14,0],[0,-14],[0,14]];
+  G.players.forEach((p, i) => {
+    let drawPos = p.pos;
+    if (G.animating && i === G.current && G.animQueue.length) {
+      drawPos = G.animQueue[G.animIdx] || p.pos;
+    }
+    if (drawPos <= 0) return;
+
+    const {x, y} = cellToXY(drawPos);
+    const [ox, oy] = offsets[i % offsets.length];
+    const px = x + ox, py = y + oy;
+
+    // Shadow
+    ctx.beginPath();
+    ctx.ellipse(px+2, py+3, 11, 6, 0, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fill();
+
+    // Body circle
+    ctx.beginPath();
+    ctx.arc(px, py, 13, 0, Math.PI*2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+
+    // Inner glow
+    const innerGrd = ctx.createRadialGradient(px-3, py-3, 0, px, py, 13);
+    innerGrd.addColorStop(0, 'rgba(255,255,255,0.4)');
+    innerGrd.addColorStop(1, 'rgba(0,0,0,0.2)');
+    ctx.fillStyle = innerGrd;
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Initial
+    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+    ctx.font = `bold ${Math.floor(CELL*0.17)}px Nunito,sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(p.name[0], px, py);
+
+    // Active pulse ring
+    if (i === G.current && !G.animating) {
+      const t = (Date.now() % 1200) / 1200;
+      const r = 13 + t * 10;
+      const alpha = 1 - t;
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(${hexToRgb(p.color)},${alpha})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  });
+}
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `${r},${g},${b}`;
+}
+
+// ═══════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════
+let raf;
+function gameLoop() {
+  drawBoard();
+  tickAnim();
+  raf = requestAnimationFrame(gameLoop);
+}
+
+// Step-by-step movement animation
+let stepTimer = 0;
+const STEP_INTERVAL = 130; // ms per cell
+
+function tickAnim() {
+  if (!G.animating || !G.animQueue.length) return;
+  const now = Date.now();
+  if (now - stepTimer < STEP_INTERVAL) return;
+  stepTimer = now;
+
+  G.animIdx++;
+  if (G.animIdx >= G.animQueue.length) {
+    // Animation done
+    G.animating = false;
+    G.players[G.current].pos = G.animQueue[G.animQueue.length - 1];
+    G.animQueue = [];
+    G.animIdx = 0;
+    afterMoveSettle();
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  GAME LOGIC
+// ═══════════════════════════════════════════════
+function rollDice() {
+  if (G.rolling || G.busy || G.animating) return;
+  const p = G.players[G.current];
+  if (p.isAi) return;
+
+  G.rolling = true;
+  G.busy = true;
+  updateRollButton();
+
+  let frame = 0;
+  const rollAnim = setInterval(() => {
+    G.diceVal = Math.floor(Math.random()*6)+1;
+    renderDice(G.diceVal, true);
+    frame++;
+    if (frame >= 15) {
+      clearInterval(rollAnim);
+      G.diceVal = Math.floor(Math.random()*6)+1;
+      G.rolling = false;
+      renderDice(G.diceVal, false);
+      document.getElementById('diceLabel').textContent = `Dadu: ${G.diceVal}`;
+      processMove(G.diceVal);
+    }
+  }, 60);
+}
+
+function processMove(dice) {
+  const p = G.players[G.current];
+  p.rolls++;
+  const newRaw = p.pos + dice;
+
+  if (newRaw > 100) {
+    setMessage(`${p.name}: Butuh tepat ${100 - p.pos}! Lemparan terbuang.`, '');
+    G.busy = false;
+    updateRollButton();
+    nextTurn();
+    return;
+  }
+
+  // Build path for animation: step cell by cell
+  const path = [];
+  for (let i = p.pos + 1; i <= newRaw; i++) path.push(i);
+
+  // Check snake/ladder at destination
+  let finalPos = newRaw;
+  let msgText = '';
+  let msgType = '';
+
+  if (G.snakes[newRaw]) {
+    finalPos = G.snakes[newRaw];
+    msgText = `🐍 ${p.name} kena ULAR! ${newRaw} → ${finalPos}`;
+    msgType = 'snake';
+  } else if (G.ladders[newRaw]) {
+    finalPos = G.ladders[newRaw];
+    msgText = `🪜 ${p.name} dapat TANGGA! ${newRaw} → ${finalPos}`;
+    msgType = 'ladder';
+  } else {
+    msgText = `${p.name} melangkah ke kotak ${newRaw}`;
+  }
+
+  // Animate step by step, then snake/ladder jump
+  G.animQueue = [...path];
+  G.animIdx = 0;
+  G.animating = true;
+  stepTimer = Date.now();
+
+  // Wait until base movement done, then handle snake/ladder
+  const checkDone = setInterval(() => {
+    if (!G.animating) {
+      clearInterval(checkDone);
+      // Now handle snake/ladder with brief pause
+      if (finalPos !== newRaw) {
+        setTimeout(() => {
+          setMessage(msgText, msgType);
+
+          G.players[G.current].pos = finalPos;
+          drawBoard();
+
+          afterMoveFinish(finalPos, msgText, msgType, p);
+        }, 300);
+      
+      } else {
+        setMessage(msgText, msgType);
+        afterMoveFinish(finalPos, msgText, msgType, p);
+      }
+    }
+  }, 50);
+}
+
+function afterMoveSettle() {
+  // Called each time animation segment ends; actual finish handled by caller
+}
+
+function afterMoveFinish(finalPos, msgText, msgType, p) {
+  // Update BFS hint
+  if (!p.isAi) {
+    const dist = bfsShortestPath(finalPos, G.snakes, G.ladders);
+    document.getElementById('hintBox').style.display = 'block';
+    document.getElementById('hintValue').textContent = dist >= 0 ? dist : '?';
+  }
+
+  updatePlayersUI();
+
+  if (finalPos === 100) {
+    G.winner = p;
+    setTimeout(() => showResult(), 600);
+    return;
+  }
+
+  G.busy = false;
+  nextTurn();
+}
+
+function nextTurn() {
+  G.current = (G.current + 1) % G.players.length;
+  updatePlayersUI();
+  updateRollButton();
+
+  const p = G.players[G.current];
+  if (p.isAi) {
+    setMessage(`🤖 ${p.name} sedang berpikir...`, '');
+    setTimeout(() => aiTurn(), 900 + Math.random()*600);
+  } else {
+    setMessage(`Giliran ${p.name}! Lempar dadu.`, '');
+  }
+}
+
+function aiTurn() {
+  if (!G.players[G.current].isAi) return;
+  const p = G.players[G.current];
+  const dice = Math.floor(Math.random()*6)+1;
+  G.diceVal = dice;
+  renderDice(dice, false);
+  document.getElementById('diceLabel').textContent = `Dadu: ${dice}`;
+  G.busy = true;
+  processMove(dice);
+}
+
+// ═══════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════
+function setMessage(text, type) {
+  const box = document.getElementById('messageBox');
+  box.textContent = text;
+  box.className = `message-box ${type}`;
+}
+
+function updateRollButton() {
+  const btn = document.getElementById('btnRoll');
+  const p = G.players[G.current];
+  const isHuman = !p.isAi;
+  const canRoll = isHuman && !G.rolling && !G.busy && !G.animating;
+  btn.disabled = !canRoll;
+  btn.className = `btn-roll${p.isAi ? ' ai-turn' : ''}`;
+  btn.textContent = p.isAi ? '🤖 AI Giliran' : '🎲 LEMPAR DADU';
+}
+
+const DOT_LAYOUTS = {
+  1: {a:0,b:0,c:0,d:0,e:0,f:0,g:1},
+  2: {a:1,b:1,c:0,d:0,e:0,f:0,g:0},
+  3: {a:1,b:1,c:0,d:0,e:0,f:0,g:1},
+  4: {a:1,b:1,c:1,d:1,e:0,f:0,g:0},
+  5: {a:1,b:1,c:1,d:1,e:0,f:0,g:1},
+  6: {a:1,b:1,c:1,d:1,e:1,f:1,g:0},
+};
+
+function renderDice(val, rolling) {
+  const face = document.getElementById('diceFace');
+  face.className = `dice-face${rolling ? ' rolling' : ''}`;
+  const layout = DOT_LAYOUTS[val] || DOT_LAYOUTS[1];
+  ['a','b','c','d','e','f','g'].forEach(k => {
+    const el = document.getElementById(`d-${k}`);
+    if (el) el.classList.toggle('hidden', !layout[k]);
+  });
+}
+
+function updatePlayersUI() {
+  const container = document.getElementById('playersContainer');
+  container.innerHTML = '';
+  G.players.forEach((p, i) => {
+    const isActive = i === G.current;
+    const div = document.createElement('div');
+    div.className = `player-card${isActive ? ' active' : ''}`;
+    if (isActive) {
+      div.style.borderColor = p.color;
+      div.style.setProperty('--pc', p.color);
+    }
+
+    const progress = p.pos / 100;
+    div.innerHTML = `
+      <div class="player-avatar" style="background:${p.color}">${p.name[0]}</div>
+      <div class="player-info">
+        <div class="player-name" style="color:${isActive ? p.color : 'var(--text)'}">${p.name}${p.isAi ? ' 🤖':''}</div>
+        <div class="player-pos">Kotak: ${p.pos || 'START'} · Lempar: ${p.rolls}</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${progress*100}%;background:${p.color}"></div></div>
+      </div>
+      ${isActive ? `<div class="giliran-tag">GILIRAN</div>` : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  RESULT
+// ═══════════════════════════════════════════════
+function showResult() {
+  cancelAnimationFrame(raf);
+  const p = G.winner;
+  const duration = Math.floor((Date.now() - G.startTime) / 1000);
+  const lvl = LEVELS[G.level];
+
+  document.getElementById('resultTitle').textContent =
+    p.isAi ? `${p.name} Menang! 🤖` : `🎉 ${p.name} Menang!`;
+
+  document.getElementById('resultCard').innerHTML = `
+    <div class="result-stat"><span class="label">Pemenang</span><span class="value" style="color:${p.color}">${p.name}</span></div>
+    <div class="result-stat"><span class="label">Level</span><span class="value">${lvl.emoji} ${lvl.name}</span></div>
+    <div class="result-stat"><span class="label">Jumlah Lemparan</span><span class="value">${p.rolls}x</span></div>
+    <div class="result-stat"><span class="label">Durasi</span><span class="value">${duration}s</span></div>
+  `;
+
+  showScreen('result');
+  launchFireworks();
+}
+
+// ═══════════════════════════════════════════════
+//  FIREWORKS
+// ═══════════════════════════════════════════════
+const fwCanvas = document.getElementById('fireworks-canvas');
+const fwCtx    = fwCanvas.getContext('2d');
+let fwParticles = [];
+let fwRaf;
+
+function resizeFW() {
+  fwCanvas.width  = window.innerWidth;
+  fwCanvas.height = window.innerHeight;
+}
+resizeFW();
+window.addEventListener('resize', resizeFW);
+
+function launchFireworks() {
+  fwCanvas.style.display = 'block';
+  let count = 0;
+  const interval = setInterval(() => {
+    for (let i = 0; i < 3; i++) explode();
+    count++;
+    if (count > 20) clearInterval(interval);
+  }, 250);
+  fwLoop();
+}
+
+function explode() {
+  const x = Math.random() * fwCanvas.width;
+  const y = Math.random() * fwCanvas.height * 0.6;
+  const colors = ['#f7c948','#e74c3c','#3498db','#2ecc71','#9b59b6','#ff6b6b','#a8ff78'];
+  const c = colors[Math.floor(Math.random()*colors.length)];
+  for (let i = 0; i < 60; i++) {
+    const angle = Math.random()*Math.PI*2;
+    const speed = Math.random()*5+1;
+    fwParticles.push({
+      x, y, vx: Math.cos(angle)*speed, vy: Math.sin(angle)*speed,
+      life: 1, decay: Math.random()*0.02+0.01, color: c,
+      size: Math.random()*3+1
+    });
+  }
+}
+
+function fwLoop() {
+  fwCtx.fillStyle = 'rgba(0,0,0,0.15)';
+  fwCtx.fillRect(0,0,fwCanvas.width,fwCanvas.height);
+  fwParticles = fwParticles.filter(p => p.life > 0);
+  fwParticles.forEach(p => {
+    p.x += p.vx; p.y += p.vy; p.vy += 0.06;
+    p.life -= p.decay;
+    fwCtx.globalAlpha = p.life;
+    fwCtx.fillStyle = p.color;
+    fwCtx.beginPath();
+    fwCtx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    fwCtx.fill();
+  });
+  fwCtx.globalAlpha = 1;
+  if (fwParticles.length > 0) {
+    fwRaf = requestAnimationFrame(fwLoop);
+  } else {
+    fwCtx.clearRect(0,0,fwCanvas.width,fwCanvas.height);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  SCREEN MANAGEMENT
+// ═══════════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${id}`).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════
+//  MENU BUILD
+// ═══════════════════════════════════════════════
+let selectedLevel = 1;
+let playerName = "Pemain";
+
+function buildMenu() {
+  const grid = document.getElementById('levelGrid');
+  grid.innerHTML = '';
+  Object.entries(LEVELS).forEach(([lv, data]) => {
+    const card = document.createElement('div');
+    card.className = `level-card${+lv === selectedLevel ? ' selected' : ''}`;
+    card.style.borderColor = +lv === selectedLevel ? data.color : 'transparent';
+    card.style.background = `linear-gradient(135deg, var(--panel), ${data.color}22)`;
+    card.innerHTML = `
+      <span class="emoji">${data.emoji}</span>
+      <span class="lname" style="color:${data.color}">${data.name}</span>
+      <span class="ldesc">${data.desc}</span>
+    `;
+    card.addEventListener('click', () => {
+      selectedLevel = +lv;
+      buildMenu();
+    });
+    grid.appendChild(card);
+  });
+}
+
+function startGame() {
+  const inputName = document.getElementById("playerName").value.trim();
+  playerName = inputName || "Pemain";
+  initGame(selectedLevel);
+  const lvl = LEVELS[selectedLevel];
+  const badge = document.getElementById('levelBadge');
+  badge.textContent = `${lvl.emoji} ${lvl.name}`;
+  badge.style.background = lvl.color + '33';
+  badge.style.color = lvl.color;
+
+  document.getElementById('hintBox').style.display = 'none';
+  updatePlayersUI();
+  updateRollButton();
+  renderDice(1, false);
+  document.getElementById('diceLabel').textContent = 'Tekan Lempar!';
+  setMessage(`Selamat bermain! Giliran ${G.players[0].name}.`, '');
+
+  showScreen('game');
+  cancelAnimationFrame(raf);
+  gameLoop();
+}
+
+// ═══════════════════════════════════════════════
+//  EVENT LISTENERS
+// ═══════════════════════════════════════════════
+document.getElementById('btnStart').addEventListener('click', startGame);
+document.getElementById('btnRoll').addEventListener('click', rollDice);
+
+document.getElementById('btnMenu').addEventListener('click', () => {
+  cancelAnimationFrame(raf);
+  showScreen('menu');
+  buildMenu();
+});
+
+document.getElementById('btnRestart').addEventListener('click', () => {
+  cancelAnimationFrame(raf);
+  startGame();
+});
+
+document.getElementById('btnResultMenu').addEventListener('click', () => {
+  fwCanvas.style.display = 'none';
+  cancelAnimationFrame(fwRaf);
+  showScreen('menu');
+  buildMenu();
+});
+
+document.getElementById('btnResultReplay').addEventListener('click', () => {
+  fwCanvas.style.display = 'none';
+  cancelAnimationFrame(fwRaf);
+  startGame();
+});
+
+// Spacebar to roll
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' && document.getElementById('screen-game').classList.contains('active')) {
+    e.preventDefault();
+    rollDice();
+  }
+});
+
+// Also check roll button state when animation ends
+setInterval(() => {
+  if (G.players && !G.animating && !G.rolling) updateRollButton();
+}, 100);
+
+// ── INIT ───────────────────────────────────────
+buildMenu();
+</script>
+</body>
+</html>
